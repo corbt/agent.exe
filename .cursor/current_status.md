@@ -52,3 +52,17 @@
 9. Tested the system prompt configuration functionality
 10. Next steps:
     - Move on to the next enhancement: Enhanced Logging with Images
+
+## Iteration 4: Error Logging Enhancement
+
+1. Updated `src/main/store/runAgent.ts` to import and use `electron-log`
+2. Modified `promptForAction` function to log errors from the API call
+3. Enhanced `runAgent` function to provide more detailed error messages to the user
+4. Implemented error logging for both API calls and general execution errors
+5. Added logging of the message stack sent to the API when errors occur
+6. Included logging of the full conversation history when errors happen in the main loop
+7. Corrected an oversight in the `promptForAction` function to ensure the correct return format is maintained
+8. Next steps:
+   - Test the error logging functionality
+   - Investigate and fix the issue with images remaining in the message history
+   - Move on to the next enhancement: Enhanced Logging with Images

@@ -8,6 +8,7 @@ import { desktopCapturer, screen } from 'electron';
 import { anthropic } from './anthropic';
 import { AppState, NextAction } from './types';
 import { extractAction } from './extractAction';
+import log from 'electron-log';
 
 const MAX_STEPS = 50;
 
@@ -100,43 +101,49 @@ const promptForAction = async (
     return msg;
   });
 
-  const message = await anthropic.beta.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
-    max_tokens: 1024,
-    system: systemPrompt, // Add this line
-    messages: historyWithoutImages,
-    tools: [
-      {
-        type: 'computer_20241022',
-        name: 'computer',
-        display_width_px: getAiScaledScreenDimensions().width,
-        display_height_px: getAiScaledScreenDimensions().height,
-        display_number: 1,
-      },
-      {
-        name: 'finish_run',
-        description:
-          'Call this function when you have achieved the goal of the task.',
-        input_schema: {
-          type: 'object',
-          properties: {
-            success: {
-              type: 'boolean',
-              description: 'Whether the task was successful',
-            },
-            error: {
-              type: 'string',
-              description: 'The error message if the task was not successful',
-            },
-          },
-          required: ['success'],
+  try {
+    const message = await anthropic.beta.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: historyWithoutImages,
+      tools: [
+        {
+          type: 'computer_20241022',
+          name: 'computer',
+          display_width_px: getAiScaledScreenDimensions().width,
+          display_height_px: getAiScaledScreenDimensions().height,
+          display_number: 1,
         },
-      },
-    ],
-    betas: ['computer-use-2024-10-22'],
-  });
+        {
+          name: 'finish_run',
+          description:
+            'Call this function when you have achieved the goal of the task.',
+          input_schema: {
+            type: 'object',
+            properties: {
+              success: {
+                type: 'boolean',
+                description: 'Whether the task was successful',
+              },
+              error: {
+                type: 'string',
+                description: 'The error message if the task was not successful',
+              },
+            },
+            required: ['success'],
+          },
+        },
+      ],
+      betas: ['computer-use-2024-10-22'],
+    });
 
-  return { content: message.content, role: message.role };
+    return { content: message.content, role: message.role }; // Ensure this line is present
+  } catch (error) {
+    log.error('Error in promptForAction:', error);
+    log.error('Message stack:', historyWithoutImages);
+    throw error;
+  }
 };
 
 export const performAction = async (action: NextAction) => {
@@ -283,10 +290,17 @@ export const runAgent = async (
         ],
       });
     } catch (error: unknown) {
+      log.error('Error in runAgent:', error);
+      log.error('Full message stack:', JSON.stringify(getState().runHistory, null, 2));
+      let errorMessage = 'An unknown error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = String(error.message);
+      }
       setState({
         ...getState(),
-        error:
-          error instanceof Error ? error.message : 'An unknown error occurred',
+        error: `Error: ${errorMessage}. Please try again or check the logs for more details.`,
         running: false,
       });
       break;
