@@ -10,7 +10,7 @@ const initialSettings = loadSettings();
 export const store = createStore<AppState>((set, get) => ({
   instructions: initialSettings.instructions ?? '',
   fullyAuto: initialSettings.fullyAuto ?? true,
-  systemPrompt: initialSettings.systemPrompt ?? '', // Add this line
+  systemPrompt: initialSettings.systemPrompt ?? '',
   running: false,
   error: null,
   runHistory: [],
@@ -24,7 +24,7 @@ export const store = createStore<AppState>((set, get) => ({
     set({ fullyAuto });
     saveSettings({ fullyAuto });
   },
-  SET_SYSTEM_PROMPT: (systemPrompt) => { // Add this function
+  SET_SYSTEM_PROMPT: (systemPrompt) => {
     set({ systemPrompt });
     saveSettings({ systemPrompt });
   },
@@ -33,7 +33,6 @@ export const store = createStore<AppState>((set, get) => ({
   SET_FEEDBACK_REQUEST: (request) => set({ feedbackRequest: request }),
   SUBMIT_FEEDBACK: (response) => {
     // Handle the feedback response
-    // This might involve updating the runHistory or triggering the AI to continue
   },
   userInput: null,
   ADD_USER_INPUT: (input) => {
@@ -41,10 +40,8 @@ export const store = createStore<AppState>((set, get) => ({
     const newInput = { role: 'user', content: input };
     set((state) => ({
       userInput: newInput,
-      // Don't add the input to runHistory here, let runAgent handle it
     }));
     log.info('Store: Updated state after ADD_USER_INPUT:', get());
-
     // Check if the agent is not running, and if so, start it
     if (!get().running) {
       log.info('Store: Agent not running, restarting...');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -42,14 +42,28 @@ function Main() {
   );
   const toast = useToast();
   const [activeTab, setActiveTab] = useState(0);
+  const [instructionsHeight, setInstructionsHeight] = useState(48);
+  const instructionsRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    // Load saved instructions height
+    const savedHeight = localStorage.getItem('instructionsHeight');
+    if (savedHeight) {
+      setInstructionsHeight(parseInt(savedHeight, 10));
+    }
+  }, []);
 
   const startRun = () => {
     dispatch({ type: 'SET_INSTRUCTIONS', payload: localInstructions });
     dispatch({ type: 'RUN_AGENT', payload: null });
   };
 
+  const clearHistory = () => {
+    dispatch({ type: 'CLEAR_HISTORY' });
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.metaKey && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       startRun();
     }
@@ -58,6 +72,13 @@ function Main() {
   const handleFullyAutoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     dispatch({ type: 'SET_FULLY_AUTO', payload: newValue });
+  };
+
+  const handleInstructionsResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const height = e.target.scrollHeight;
+    setInstructionsHeight(height);
+    localStorage.setItem('instructionsHeight', height.toString());
+    e.target.style.height = `${height}px`;
   };
 
   return (
@@ -135,9 +156,10 @@ function Main() {
               <VStack spacing={4} align="stretch" height="100%">
                 <Box
                   as="textarea"
+                  ref={instructionsRef}
                   placeholder="What can I do for you today?"
                   width="100%"
-                  height="auto"
+                  flex="1"
                   minHeight="48px"
                   p={4}
                   borderRadius="16px"
@@ -146,6 +168,7 @@ function Main() {
                   sx={{
                     '-webkit-app-region': 'no-drag',
                     transition: 'box-shadow 0.2s, border-color 0.2s',
+                    resize: 'none',
                     _hover: {
                       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
                     },
@@ -159,8 +182,7 @@ function Main() {
                   disabled={running}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                     setLocalInstructions(e.target.value);
-                    e.target.style.height = 'auto';
-                    e.target.style.height = `${e.target.scrollHeight}px`;
+                    handleInstructionsResize(e);
                   }}
                   onKeyDown={handleKeyDown}
                 />
@@ -197,28 +219,6 @@ function Main() {
           </HStack>
           <HStack>
             {running && <Spinner size="sm" color="gray.500" mr={2} />}
-            {!running && runHistory.length > 0 && (
-              <Button
-                bg="transparent"
-                fontWeight="normal"
-                _hover={{
-                  bg: 'whiteAlpha.500',
-                  borderColor: 'blackAlpha.300',
-                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.05)',
-                }}
-                _focus={{
-                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.05)',
-                  outline: 'none',
-                }}
-                borderRadius="12px"
-                border="1px solid"
-                borderColor="blackAlpha.200"
-                onClick={() => dispatch('CLEAR_HISTORY')}
-                aria-label="Clear history"
-              >
-                <FaTrash />
-              </Button>
-            )}
             <Button
               bg="transparent"
               fontWeight="normal"
@@ -238,6 +238,26 @@ function Main() {
               isDisabled={!running && localInstructions?.trim() === ''}
             >
               {running ? <FaStop /> : "Let's Go"}
+            </Button>
+            <Button
+              bg="transparent"
+              fontWeight="normal"
+              _hover={{
+                bg: 'whiteAlpha.500',
+                borderColor: 'blackAlpha.300',
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.05)',
+              }}
+              _focus={{
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.05)',
+                outline: 'none',
+              }}
+              borderRadius="12px"
+              border="1px solid"
+              borderColor="blackAlpha.200"
+              onClick={clearHistory}
+              leftIcon={<FaTrash />}
+            >
+              Clear History
             </Button>
           </HStack>
         </HStack>

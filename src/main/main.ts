@@ -16,6 +16,7 @@ import { mainZustandBridge } from 'zutron/main';
 import MenuBuilder from './menu';
 import { store } from './store/create';
 import { resolveHtmlPath } from './util';
+import Store from 'electron-store';
 
 class AppUpdater {
   constructor() {
@@ -75,15 +76,24 @@ const createWindow = async () => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
 
-  mainWindow = new BrowserWindow({
-    show: false,
+  const electronStore = new Store();
+
+  const windowState = electronStore.get('windowState', {
     width: 350,
     height: 600,
-    x: width - 350, // Position from right edge
-    y: 0, // Position from top edge (changed from: y: height - 500)
-    frame: false, // Remove default frame
-    transparent: true, // Optional: enables transparency
-    alwaysOnTop: true, // Keep window on top
+    x: undefined,
+    y: undefined,
+  });
+
+  mainWindow = new BrowserWindow({
+    show: false,
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       preload: app.isPackaged
@@ -143,6 +153,15 @@ const createWindow = async () => {
 
   ipcMain.handle('close-window', () => {
     mainWindow?.close();
+  });
+
+  ['resize', 'move'].forEach(event => {
+    mainWindow.on(event, () => {
+      if (!mainWindow.isMaximized()) {
+        const bounds = mainWindow.getBounds();
+        electronStore.set('windowState', bounds);
+      }
+    });
   });
 };
 

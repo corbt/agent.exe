@@ -100,7 +100,7 @@
     - Refine error handling and user feedback mechanisms
     - Move on to the next enhancement: Plugin System
 
-## Iteration 7: Refinement and Testing (In Progress)
+## Iteration 7: Refinement and Testing
 
 1. Conduct comprehensive testing of all implemented features:
    - Persistent settings
@@ -114,3 +114,28 @@
    - Complete testing and refinement phase
    - Prepare for the implementation of the Plugin System
    - Review and update project roadmap based on progress and any new requirements
+
+## Iteration 8: Window State and Instructions Box Persistence
+
+1. Implemented window state (size, position) persistence using electron-store
+2. Added instructions box height persistence using localStorage
+3. Updated `src/main/main.ts` to handle window state saving and restoring
+4. Modified `src/renderer/App.tsx` to manage instructions box height persistence
+5. Resolved issues with store access in the main process
+6. Tested window state persistence across multiple sessions
+7. Verified instructions box height persistence
+8. Next steps:
+   - Address any remaining issues or inconsistencies
+   - Move on to the next planned enhancement: Plugin System
+
+## Iteration 9: Instructions Input Box Expansion
+
+1. Modified `src/renderer/App.tsx` to make the instructions input box expand to 100% flex height
+2. Updated the textarea component to use `flex: 1` instead of a fixed height
+3. Removed manual resizing functionality for the instructions box
+4. Adjusted the layout to accommodate the expanded instructions box
+5. Next steps:
+   - Test the expanded instructions input box functionality
+   - Ensure proper layout and scrolling behavior with the new design
+   - Address any potential conflicts with other components (e.g., run history, error messages)
+   - Continue with the implementation of the Plugin System
