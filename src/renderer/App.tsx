@@ -26,6 +26,7 @@ import { RunHistory } from './RunHistory';
 import { SystemPrompt } from './SystemPrompt';
 import { FeedbackRequest } from './FeedbackRequest';
 import { ContinuousInput } from './ContinuousInput';
+import { Plugins } from './Plugins';
 
 function Main() {
   const dispatch = useDispatch(window.zutron);
@@ -162,6 +163,7 @@ function Main() {
           <TabList>
             <Tab>Main</Tab>
             <Tab>System Prompt</Tab>
+            <Tab>Plugins</Tab>
           </TabList>
 
           <TabPanels height="calc(100% - 40px)">
@@ -216,6 +218,9 @@ function Main() {
             </TabPanel>
             <TabPanel height="100%">
               <SystemPrompt />
+            </TabPanel>
+            <TabPanel height="100%">
+              <Plugins />
             </TabPanel>
           </TabPanels>
         </Tabs>

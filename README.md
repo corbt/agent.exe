@@ -21,6 +21,12 @@ We've added a new "System Prompt" tab that allows users to customize the instruc
 
 The main interface now includes a continuous input box for providing additional instructions to Claude during a run. We've also improved the run history display to show Claude's actions and reasoning more clearly.
 
+![Update 3: Plugin System](update3.png)
+
+We're excited to introduce our new plugin system! This feature allows users to extend Agent.exe's functionality with custom plugins. You can now install, manage, and utilize various plugins to enhance Claude's capabilities. The new Plugins tab provides an easy-to-use interface for managing your installed plugins.
+
+Check out our [Sample Plugin](src/plugins/SamplePlugin.js) for an example of how to create your own plugins!
+
 ## ORIGINAL PROJECT 👇
 
 ### Motivation
