@@ -24,6 +24,8 @@ import { useDispatch } from 'zutron';
 import { useStore } from './hooks/useStore';
 import { RunHistory } from './RunHistory';
 import { SystemPrompt } from './SystemPrompt';
+import { FeedbackRequest } from './FeedbackRequest';
+import { ContinuousInput } from './ContinuousInput';
 
 function Main() {
   const dispatch = useDispatch(window.zutron);
@@ -33,6 +35,7 @@ function Main() {
     running,
     error,
     runHistory,
+    feedbackRequest,
   } = useStore();
   const [localInstructions, setLocalInstructions] = React.useState(
     savedInstructions ?? '',
@@ -41,7 +44,6 @@ function Main() {
   const [activeTab, setActiveTab] = useState(0);
 
   const startRun = () => {
-    // Update Zustand state before starting the run
     dispatch({ type: 'SET_INSTRUCTIONS', payload: localInstructions });
     dispatch({ type: 'RUN_AGENT', payload: null });
   };
@@ -170,6 +172,13 @@ function Main() {
                 <Box flex="1" w="100%" overflow="auto">
                   <RunHistory />
                 </Box>
+                {feedbackRequest && (
+                  <FeedbackRequest
+                    request={feedbackRequest}
+                    onSubmit={(response) => dispatch({ type: 'SUBMIT_FEEDBACK', payload: response })}
+                  />
+                )}
+                <ContinuousInput />
               </VStack>
             </TabPanel>
             <TabPanel height="100%">

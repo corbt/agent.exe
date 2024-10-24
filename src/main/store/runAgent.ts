@@ -9,6 +9,7 @@ import { anthropic } from './anthropic';
 import { AppState, NextAction } from './types';
 import { extractAction } from './extractAction';
 import log from 'electron-log';
+import { store } from './create'; // Import the store
 
 const MAX_STEPS = 50;
 
@@ -203,21 +204,18 @@ export const performAction = async (action: NextAction) => {
 };
 
 export const runAgent = async (
-  setState: (state: AppState) => void,
-  getState: () => AppState,
+  setState: (state: Partial<AppState>) => void,
+  getState: () => AppState
 ) => {
   setState({
-    ...getState(),
     running: true,
     runHistory: [{ role: 'user', content: getState().instructions ?? '' }],
     error: null,
   });
 
   while (getState().running) {
-    // Add this check at the start of the loop
     if (getState().runHistory.length >= MAX_STEPS * 2) {
       setState({
-        ...getState(),
         error: 'Maximum steps exceeded',
         running: false,
       });
@@ -227,7 +225,6 @@ export const runAgent = async (
     try {
       const message = await promptForAction(getState().runHistory, getState().systemPrompt);
       setState({
-        ...getState(),
         runHistory: [...getState().runHistory, message],
       });
       const { action, reasoning, toolId } = extractAction(
@@ -238,14 +235,12 @@ export const runAgent = async (
 
       if (action.type === 'error') {
         setState({
-          ...getState(),
           error: action.message,
           running: false,
         });
         break;
       } else if (action.type === 'finish') {
         setState({
-          ...getState(),
           running: false,
         });
         break;
@@ -253,7 +248,7 @@ export const runAgent = async (
       if (!getState().running) {
         break;
       }
-      performAction(action);
+      await performAction(action);
 
       await new Promise((resolve) => setTimeout(resolve, 500));
       if (!getState().running) {
@@ -261,7 +256,6 @@ export const runAgent = async (
       }
 
       setState({
-        ...getState(),
         runHistory: [
           ...getState().runHistory,
           {
@@ -289,6 +283,16 @@ export const runAgent = async (
           },
         ],
       });
+
+      // Check for user input
+      if (getState().userInput) {
+        const userInput = getState().userInput;
+        setState({ userInput: null });
+        // Add the user input to the message stack
+        setState({
+          runHistory: [...getState().runHistory, { role: 'user', content: userInput.content }],
+        });
+      }
     } catch (error: unknown) {
       log.error('Error in runAgent:', error);
       log.error('Full message stack:', JSON.stringify(getState().runHistory, null, 2));
@@ -299,7 +303,6 @@ export const runAgent = async (
         errorMessage = String(error.message);
       }
       setState({
-        ...getState(),
         error: `Error: ${errorMessage}. Please try again or check the logs for more details.`,
         running: false,
       });

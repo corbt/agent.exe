@@ -77,3 +77,40 @@
 6. Next steps:
    - Test the enhanced logging with images feature
    - Move on to the next enhancement: Plugin System
+
+## Iteration 6: User Feedback and Continuous Input System
+
+1. Designed the continuous input data structure
+2. Updated `src/main/store/types.ts` to include new types for user input
+3. Modified `src/main/store/create.ts` to handle continuous user input in the store
+4. Created a new `ContinuousInput` component in `src/renderer/ContinuousInput.tsx`
+5. Updated `src/renderer/App.tsx` to include the new ContinuousInput component
+6. Modified `src/main/store/runAgent.ts` to check for and incorporate new user inputs
+7. Implemented the mechanism to add new user inputs to the message stack
+8. Integrated the new input system with the existing run history
+9. Fixed issues related to incorrect message roles and API compatibility:
+   - Updated `runAgent` function to filter out 'tool' role messages before sending to API
+   - Ensured tool use and results are included as part of 'assistant' messages
+   - Updated `AppMessage` type to only allow 'user' and 'assistant' roles
+10. Corrected the return format in the `promptForAction` function to match expected `BetaMessageParam` type
+11. Enhanced error handling and logging throughout the application
+12. Next steps:
+    - Conduct thorough testing of the continuous input functionality
+    - Ensure the AI can properly respond to and incorporate new instructions
+    - Refine error handling and user feedback mechanisms
+    - Move on to the next enhancement: Plugin System
+
+## Iteration 7: Refinement and Testing (In Progress)
+
+1. Conduct comprehensive testing of all implemented features:
+   - Persistent settings
+   - System prompt configuration
+   - Enhanced logging with images
+   - Continuous input system
+2. Identify and fix any remaining bugs or issues
+3. Optimize performance and user experience
+4. Update documentation to reflect recent changes and new features
+5. Next steps:
+   - Complete testing and refinement phase
+   - Prepare for the implementation of the Plugin System
+   - Review and update project roadmap based on progress and any new requirements

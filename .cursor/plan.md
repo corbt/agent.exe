@@ -23,6 +23,7 @@ Agent.exe/
 │   ├── main/                     # Main process code
 │   │   ├── main.ts               # Entry point for the main process
 │   │   ├── preload.ts            # Preload script for renderer process
+│   │   ├── settings.ts           # Manage application settings
 │   │   └── store/                # State management for main process
 │   │       ├── create.ts         # Store creation and configuration
 │   │       ├── runAgent.ts       # Logic for running the AI agent
@@ -32,6 +33,9 @@ Agent.exe/
 │       ├── index.ejs             # HTML template for the app
 │       ├── index.tsx             # Entry point for the renderer process
 │       ├── RunHistory.tsx        # Component for displaying run history
+│       ├── SystemPrompt.tsx      # Component for system prompt configuration
+│       ├── FeedbackRequest.tsx   # Component for handling user feedback requests
+│       ├── ContinuousInput.tsx   # Component for continuous user input
 │       ├── global.d.ts           # Global type declarations
 │       └── hooks/                # Custom React hooks
 │           └── useStore.ts       # Hook for accessing the Zustand store
@@ -96,6 +100,12 @@ Agent.exe/
 - Create a screenshot masking system to focus on the active tool
 - Pass tool context to the AI model
 
+### 8. User Feedback and Continuous Input System
+
+- Implement an always-present input box for users to provide additional instructions
+- Create a mechanism for the AI to incorporate new instructions into its ongoing task
+- Integrate the continuous input system with the existing run history
+
 ## Implementation Plan
 
 ### 1. Persistent Settings
@@ -144,3 +154,12 @@ Agent.exe/
 3. Implement a tool management system in the main process
 4. Modify the `runAgent` function to handle tool context and management
 5. Develop a screenshot masking system for active tools
+
+### 8. User Feedback and Continuous Input System
+
+1. Design the continuous input data structure and integration with the existing message stack
+2. Create a persistent UI component for the input box in the main application window
+3. Implement a mechanism in the main process to handle new user inputs
+4. Modify the `runAgent` function to check for and incorporate new user inputs during execution
+5. Update the renderer process to display the input box and send new instructions to the main process
+6. Integrate the new input system with the existing run history display
