@@ -177,6 +177,8 @@ export const performAction = async (action: NextAction) => {
     case 'key':
       const keyMap = {
         Return: Key.Enter,
+        ctrl: Key.LeftControl,
+        cmd: Key.LeftSuper,
       };
       const keys = action.text.split('+').map((key) => {
         const mappedKey = keyMap[key as keyof typeof keyMap];
@@ -246,6 +248,12 @@ export const runAgent = async (
       if (!getState().running) {
         break;
       }
+
+      // Replace 'ctrl' with 'cmd' for Mac OS
+      if (process.platform === 'darwin' && action.type === 'key') {
+        action.text = action.text.replace('ctrl', 'cmd');
+      }
+
       performAction(action);
 
       await new Promise((resolve) => setTimeout(resolve, 500));
