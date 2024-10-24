@@ -11,6 +11,9 @@ import { extractAction } from './extractAction';
 
 const MAX_STEPS = 50;
 
+// Add near the top of the file
+const PAUSE_BETWEEN_AUTO_STEPS = 1000; // 1 second pause between auto steps
+
 function getScreenDimensions(): { width: number; height: number } {
   const primaryDisplay = screen.getPrimaryDisplay();
   return primaryDisplay.size;
@@ -202,30 +205,46 @@ export const runAgent = async (
   setState({
     ...getState(),
     running: true,
+    stepCount: 0, // Initialize step counter
     runHistory: [{ role: 'user', content: getState().instructions ?? '' }],
     error: null,
   });
 
   while (getState().running) {
-    // Add this check at the start of the loop
-    if (getState().runHistory.length >= MAX_STEPS * 2) {
-      setState({
-        ...getState(),
-        error: 'Maximum steps exceeded',
-        running: false,
-      });
-      break;
+    const currentState = getState();
+    const stepCount = currentState.stepCount;
+
+    // Check if we've hit max steps
+    if (stepCount >= MAX_STEPS) {
+      if (currentState.fullyAuto) {
+        // In auto mode, pause execution and notify user
+        setState({
+          ...currentState,
+          running: false,
+          error: `Maximum steps (${MAX_STEPS}) reached. Click "Let's Go" to continue.`,
+        });
+        break;
+      } else {
+        // In manual mode, just stop
+        setState({
+          ...currentState,
+          error: 'Maximum steps exceeded',
+          running: false,
+        });
+        break;
+      }
     }
 
     try {
-      const message = await promptForAction(getState().runHistory);
+      const message = await promptForAction(currentState.runHistory);
+
       setState({
         ...getState(),
         runHistory: [...getState().runHistory, message],
+        stepCount: stepCount + 1,
       });
-      const { action, reasoning, toolId } = extractAction(
-        message as BetaMessage,
-      );
+
+      const { action, reasoning, toolId } = extractAction(message as BetaMessage);
       console.log('REASONING', reasoning);
       console.log('ACTION', action);
 
@@ -243,16 +262,21 @@ export const runAgent = async (
         });
         break;
       }
-      if (!getState().running) {
-        break;
-      }
-      performAction(action);
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      if (!getState().running) {
-        break;
+      if (!getState().running) break;
+
+      await performAction(action);
+
+      // Add pause between auto steps
+      if (getState().fullyAuto) {
+        await new Promise((resolve) => setTimeout(resolve, PAUSE_BETWEEN_AUTO_STEPS));
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
+      if (!getState().running) break;
+
+      // Update state with screenshot
       setState({
         ...getState(),
         runHistory: [
@@ -282,11 +306,11 @@ export const runAgent = async (
           },
         ],
       });
+
     } catch (error: unknown) {
       setState({
         ...getState(),
-        error:
-          error instanceof Error ? error.message : 'An unknown error occurred',
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
         running: false,
       });
       break;
