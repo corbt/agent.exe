@@ -66,3 +66,14 @@
    - Test the error logging functionality
    - Investigate and fix the issue with images remaining in the message history
    - Move on to the next enhancement: Enhanced Logging with Images
+
+## Iteration 5: Enhanced Logging with Images
+
+1. Updated `src/renderer/RunHistory.tsx` to display screenshots sent to the LLM API
+2. Modified the component to handle both assistant messages and user messages containing images
+3. Implemented image rendering using base64-encoded data
+4. Ensured proper scrolling behavior for the run history
+5. Tested the image display functionality
+6. Next steps:
+   - Test the enhanced logging with images feature
+   - Move on to the next enhancement: Plugin System
