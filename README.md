@@ -1,8 +1,27 @@
+# Agent.exe: Claude's Computer Control Interface
+
+[📊 View Project Progress Report](progress_report.md)
+[🗺️ View Project Plan](.cursor/plan.md)
+
 Presenting **Agent.exe**: the easiest way to let Claude's new [computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) capabilities take over your computer!
 
 <img width="387" alt="buy pizza" src="https://github.com/user-attachments/assets/c11cc8f1-6dcb-48f4-9d18-682f14edb77d">
 
 https://github.com/user-attachments/assets/2a371241-bc43-46d4-896e-256b3adc388d
+
+## Recent Updates
+
+We've made significant improvements to Agent.exe. Here are some of the latest updates:
+
+![Update 1: System Prompt Configuration](update1.png)
+
+We've added a new "System Prompt" tab that allows users to customize the instructions given to Claude. This gives you more control over how Claude interacts with your computer.
+
+![Update 2: Continuous Input and Run History](update2.png)
+
+The main interface now includes a continuous input box for providing additional instructions to Claude during a run. We've also improved the run history display to show Claude's actions and reasoning more clearly.
+
+## ORIGINAL PROJECT 👇
 
 ### Motivation
 
@@ -35,3 +54,5 @@ I wanted to see how good Claude's new [computer use](https://www.anthropic.com/n
 ### Roadmap
 
 - I literally wrote this in 6 hours, probably isn't going anywhere. But I will review PRs and merge them if they seem cool.
+
+## Shannon Code Fork
