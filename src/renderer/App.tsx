@@ -154,7 +154,15 @@ function Main() {
               onChange={(e) => {
                 dispatch({
                   type: 'SET_FULLY_AUTO',
-                  payload: e.target.checked
+                  payload: e.target.checked,
+                });
+                toast({
+                  description: e.target.checked
+                    ? "Full Auto mode enabled. Agent will continue until task completion or max steps reached."
+                    : "Manual mode enabled. Agent will stop after max steps.",
+                  status: 'info',
+                  duration: 3000,
+                  isClosable: true,
                 });
               }}
             />
