@@ -8,7 +8,7 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-import { app, BrowserWindow, ipcMain, shell, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, screen, dialog } from 'electron';
 import log from 'electron-log';
 import { autoUpdater } from 'electron-updater';
 import path from 'path';
@@ -16,6 +16,9 @@ import { mainZustandBridge } from 'zutron/main';
 import MenuBuilder from './menu';
 import { store } from './store/create';
 import { resolveHtmlPath } from './util';
+import Store from 'electron-store';
+import fs from 'fs';
+import { pluginManager } from './pluginManager';
 
 class AppUpdater {
   constructor() {
@@ -58,6 +61,35 @@ const installExtensions = async () => {
     .catch(console.log);
 };
 
+// Add this function to load plugins
+async function loadPlugins() {
+  const pluginsDir = path.join(app.getAppPath(), 'src', 'plugins');
+  console.log(`Attempting to load plugins from: ${pluginsDir}`);
+
+  if (!fs.existsSync(pluginsDir)) {
+    console.log(`Plugins directory does not exist: ${pluginsDir}`);
+    return;
+  }
+
+  const pluginFiles = fs.readdirSync(pluginsDir);
+
+  for (const file of pluginFiles) {
+    if (file.endsWith('.js')) {
+      const pluginPath = path.join(pluginsDir, file);
+      try {
+        const PluginClass = require(pluginPath);
+        const plugin = new PluginClass();
+        if (typeof plugin.initialize === 'function') {
+          plugin.initialize();
+        }
+        console.log(`Loaded plugin: ${file}`);
+      } catch (error) {
+        console.error(`Error loading plugin ${file}:`, error);
+      }
+    }
+  }
+}
+
 const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
@@ -75,15 +107,31 @@ const createWindow = async () => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
 
-  mainWindow = new BrowserWindow({
-    show: false,
+  const electronStore = new Store();
+
+  interface WindowState {
+    width: number;
+    height: number;
+    x?: number;
+    y?: number;
+  }
+
+  const windowState = electronStore.get('windowState', {
     width: 350,
     height: 600,
-    x: width - 350, // Position from right edge
-    y: 0, // Position from top edge (changed from: y: height - 500)
-    frame: false, // Remove default frame
-    transparent: true, // Optional: enables transparency
-    alwaysOnTop: true, // Keep window on top
+    x: undefined,
+    y: undefined,
+  }) as WindowState;
+
+  mainWindow = new BrowserWindow({
+    show: false,
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       preload: app.isPackaged
@@ -94,7 +142,7 @@ const createWindow = async () => {
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 
-  mainWindow.on('ready-to-show', () => {
+  mainWindow.webContents.on('did-finish-load', () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
@@ -103,6 +151,9 @@ const createWindow = async () => {
     } else {
       mainWindow.show();
     }
+
+    // Load plugins after the window content has loaded
+    pluginManager.loadPlugins();
   });
 
   mainWindow.on('closed', () => {
@@ -144,6 +195,36 @@ const createWindow = async () => {
   ipcMain.handle('close-window', () => {
     mainWindow?.close();
   });
+
+  ['resized', 'moved'].forEach((event) => {
+    mainWindow?.on(event as any, () => {
+      if (mainWindow && !mainWindow.isMaximized()) {
+        const bounds = mainWindow.getBounds();
+        electronStore.set('windowState', bounds);
+      }
+    });
+  });
+
+  // Add these handlers after the existing IPC handlers
+  ipcMain.on('get-plugins', (event) => {
+    const plugins = pluginManager.getPlugins();
+    event.reply('get-plugins-response', plugins);
+  });
+
+  ipcMain.on('install-plugin', async (event) => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      properties: ['openFile'],
+      filters: [{ name: 'JavaScript', extensions: ['js'] }],
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0];
+      pluginManager.installPlugin(filePath);
+      event.reply('install-plugin-response', true);
+    } else {
+      event.reply('install-plugin-response', false);
+    }
+  });
 };
 
 /**
@@ -162,6 +243,7 @@ app
   .whenReady()
   .then(() => {
     createWindow();
+    pluginManager.loadPlugins(); // Add this line
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.

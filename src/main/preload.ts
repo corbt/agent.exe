@@ -1,11 +1,11 @@
 // Disable no-unused-vars, broken for spread args
 /* eslint no-unused-vars: off */
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { preloadZustandBridge } from 'zutron/preload';
 
 import type { AppState } from './store/types';
 
-export type Channels = 'ipc-example';
+export type Channels = 'ipc-example' | 'get-plugins' | 'get-plugins-response' | 'install-plugin' | 'install-plugin-response';
 
 const electronHandler = {
   ipcRenderer: {

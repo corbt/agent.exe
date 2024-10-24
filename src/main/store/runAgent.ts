@@ -8,6 +8,8 @@ import { desktopCapturer, screen } from 'electron';
 import { anthropic } from './anthropic';
 import { AppState, NextAction } from './types';
 import { extractAction } from './extractAction';
+import log from 'electron-log';
+import { store } from './create'; // Import the store
 
 const MAX_STEPS = 50;
 
@@ -78,6 +80,7 @@ const mapFromAiSpace = (x: number, y: number) => {
 
 const promptForAction = async (
   runHistory: BetaMessageParam[],
+  systemPrompt: string
 ): Promise<BetaMessageParam> => {
   // Strip images from all but the last message
   const historyWithoutImages = runHistory.map((msg, index) => {
@@ -99,44 +102,49 @@ const promptForAction = async (
     return msg;
   });
 
-  const message = await anthropic.beta.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
-    max_tokens: 1024,
-    tools: [
-      {
-        type: 'computer_20241022',
-        name: 'computer',
-        display_width_px: getAiScaledScreenDimensions().width,
-        display_height_px: getAiScaledScreenDimensions().height,
-        display_number: 1,
-      },
-      {
-        name: 'finish_run',
-        description:
-          'Call this function when you have achieved the goal of the task.',
-        input_schema: {
-          type: 'object',
-          properties: {
-            success: {
-              type: 'boolean',
-              description: 'Whether the task was successful',
-            },
-            error: {
-              type: 'string',
-              description: 'The error message if the task was not successful',
-            },
-          },
-          required: ['success'],
+  try {
+    const message = await anthropic.beta.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: historyWithoutImages,
+      tools: [
+        {
+          type: 'computer_20241022',
+          name: 'computer',
+          display_width_px: getAiScaledScreenDimensions().width,
+          display_height_px: getAiScaledScreenDimensions().height,
+          display_number: 1,
         },
-      },
-    ],
-    system: `The user will ask you to perform a task and you should use their computer to do so. After each step, take a screenshot and carefully evaluate if you have achieved the right outcome. Explicitly show your thinking: "I have evaluated step X..." If not correct, try again. Only when you confirm a step was executed correctly should you move on to the next one. Note that you have to click into the browser address bar before typing a URL. You should always call a tool! Always return a tool call. Remember call the finish_run tool when you have achieved the goal of the task. Do not explain you have finished the task, just call the tool. Use keyboard shortcuts to navigate whenever possible.`,
-    // tool_choice: { type: 'any' },
-    messages: historyWithoutImages,
-    betas: ['computer-use-2024-10-22'],
-  });
+        {
+          name: 'finish_run',
+          description:
+            'Call this function when you have achieved the goal of the task.',
+          input_schema: {
+            type: 'object',
+            properties: {
+              success: {
+                type: 'boolean',
+                description: 'Whether the task was successful',
+              },
+              error: {
+                type: 'string',
+                description: 'The error message if the task was not successful',
+              },
+            },
+            required: ['success'],
+          },
+        },
+      ],
+      betas: ['computer-use-2024-10-22'],
+    });
 
-  return { content: message.content, role: message.role };
+    return { content: message.content, role: message.role }; // Ensure this line is present
+  } catch (error) {
+    log.error('Error in promptForAction:', error);
+    log.error('Message stack:', historyWithoutImages);
+    throw error;
+  }
 };
 
 export const performAction = async (action: NextAction) => {
@@ -196,21 +204,18 @@ export const performAction = async (action: NextAction) => {
 };
 
 export const runAgent = async (
-  setState: (state: AppState) => void,
-  getState: () => AppState,
+  setState: (state: Partial<AppState>) => void,
+  getState: () => AppState
 ) => {
   setState({
-    ...getState(),
     running: true,
     runHistory: [{ role: 'user', content: getState().instructions ?? '' }],
     error: null,
   });
 
   while (getState().running) {
-    // Add this check at the start of the loop
     if (getState().runHistory.length >= MAX_STEPS * 2) {
       setState({
-        ...getState(),
         error: 'Maximum steps exceeded',
         running: false,
       });
@@ -218,9 +223,8 @@ export const runAgent = async (
     }
 
     try {
-      const message = await promptForAction(getState().runHistory);
+      const message = await promptForAction(getState().runHistory, getState().systemPrompt);
       setState({
-        ...getState(),
         runHistory: [...getState().runHistory, message],
       });
       const { action, reasoning, toolId } = extractAction(
@@ -231,14 +235,12 @@ export const runAgent = async (
 
       if (action.type === 'error') {
         setState({
-          ...getState(),
           error: action.message,
           running: false,
         });
         break;
       } else if (action.type === 'finish') {
         setState({
-          ...getState(),
           running: false,
         });
         break;
@@ -246,7 +248,7 @@ export const runAgent = async (
       if (!getState().running) {
         break;
       }
-      performAction(action);
+      await performAction(action);
 
       await new Promise((resolve) => setTimeout(resolve, 500));
       if (!getState().running) {
@@ -254,7 +256,6 @@ export const runAgent = async (
       }
 
       setState({
-        ...getState(),
         runHistory: [
           ...getState().runHistory,
           {
@@ -282,11 +283,27 @@ export const runAgent = async (
           },
         ],
       });
+
+      // Check for user input
+      if (getState().userInput) {
+        const userInput = getState().userInput;
+        setState({ userInput: null });
+        // Add the user input to the message stack
+        setState({
+          runHistory: [...getState().runHistory, { role: 'user', content: userInput?.content ?? '' }],
+        });
+      }
     } catch (error: unknown) {
+      log.error('Error in runAgent:', error);
+      log.error('Full message stack:', JSON.stringify(getState().runHistory, null, 2));
+      let errorMessage = 'An unknown error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = String(error.message);
+      }
       setState({
-        ...getState(),
-        error:
-          error instanceof Error ? error.message : 'An unknown error occurred',
+        error: `Error: ${errorMessage}. Please try again or check the logs for more details.`,
         running: false,
       });
       break;
