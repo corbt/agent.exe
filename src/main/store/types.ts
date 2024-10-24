@@ -27,4 +27,6 @@ export type AppState = {
   SET_INSTRUCTIONS: (instructions: string) => void;
   SET_FULLY_AUTO: (fullyAuto: boolean) => void;
   CLEAR_HISTORY: () => void;
+
+  stepCount: number; // Track current step count
 };

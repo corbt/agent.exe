@@ -152,12 +152,9 @@ function Main() {
             <Switch
               isChecked={fullyAuto}
               onChange={(e) => {
-                toast({
-                  description:
-                    "Whoops, automatic mode isn't actually implemented yet. 😬",
-                  status: 'info',
-                  duration: 3000,
-                  isClosable: true,
+                dispatch({
+                  type: 'SET_FULLY_AUTO',
+                  payload: e.target.checked
                 });
               }}
             />
