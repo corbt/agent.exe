@@ -4,7 +4,7 @@ class SamplePlugin {
   }
 
   initialize() {
-    console.log(`<From Plugin "${this.name}"> : loaded and initialized.`);
+    console.log(`<From Plugin "${this.name}"> : loaded and initialized. 🎉🎊🥳`);
   }
 
   // Add any other methods or properties as needed
