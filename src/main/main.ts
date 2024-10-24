@@ -78,12 +78,19 @@ const createWindow = async () => {
 
   const electronStore = new Store();
 
+  interface WindowState {
+    width: number;
+    height: number;
+    x?: number;
+    y?: number;
+  }
+
   const windowState = electronStore.get('windowState', {
     width: 350,
     height: 600,
     x: undefined,
     y: undefined,
-  });
+  }) as WindowState;
 
   mainWindow = new BrowserWindow({
     show: false,
@@ -155,9 +162,9 @@ const createWindow = async () => {
     mainWindow?.close();
   });
 
-  ['resize', 'move'].forEach(event => {
-    mainWindow.on(event, () => {
-      if (!mainWindow.isMaximized()) {
+  ['resized', 'moved'].forEach((event) => {
+    mainWindow?.on(event as any, () => {
+      if (mainWindow && !mainWindow.isMaximized()) {
         const bounds = mainWindow.getBounds();
         electronStore.set('windowState', bounds);
       }

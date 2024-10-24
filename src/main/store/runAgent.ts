@@ -290,7 +290,7 @@ export const runAgent = async (
         setState({ userInput: null });
         // Add the user input to the message stack
         setState({
-          runHistory: [...getState().runHistory, { role: 'user', content: userInput.content }],
+          runHistory: [...getState().runHistory, { role: 'user', content: userInput?.content ?? '' }],
         });
       }
     } catch (error: unknown) {

@@ -47,8 +47,8 @@ export function RunHistory() {
           const imageContent = message.content.find(
             (item) => item.type === 'tool_result' && Array.isArray(item.content)
           );
-          if (imageContent && Array.isArray(imageContent.content)) {
-            const imageItem = imageContent.content.find((item) => item.type === 'image');
+          if (imageContent && Array.isArray((imageContent as any).content)) {
+            const imageItem = (imageContent as any).content.find((item: any) => item.type === 'image');
             if (imageItem && imageItem.source && imageItem.source.type === 'base64') {
               return (
                 <Box key={index} mb={4}>

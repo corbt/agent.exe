@@ -37,10 +37,8 @@ export const store = createStore<AppState>((set, get) => ({
   userInput: null,
   ADD_USER_INPUT: (input) => {
     log.info('Store: ADD_USER_INPUT action received:', input);
-    const newInput = { role: 'user', content: input };
-    set((state) => ({
-      userInput: newInput,
-    }));
+    const newInput = { id: Date.now().toString(), role: 'user', content: input };
+    set({ userInput: newInput });
     log.info('Store: Updated state after ADD_USER_INPUT:', get());
     // Check if the agent is not running, and if so, start it
     if (!get().running) {

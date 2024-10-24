@@ -53,13 +53,26 @@ function Main() {
     }
   }, []);
 
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "top",
+      });
+    }
+  }, [error, toast]);
+
   const startRun = () => {
     dispatch({ type: 'SET_INSTRUCTIONS', payload: localInstructions });
     dispatch({ type: 'RUN_AGENT', payload: null });
   };
 
   const clearHistory = () => {
-    dispatch({ type: 'CLEAR_HISTORY' });
+    dispatch({ type: 'CLEAR_HISTORY', payload: null });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -153,7 +166,7 @@ function Main() {
 
           <TabPanels height="calc(100% - 40px)">
             <TabPanel height="100%">
-              <VStack spacing={4} align="stretch" height="100%">
+              <VStack spacing={4} height="100%">
                 <Box
                   as="textarea"
                   ref={instructionsRef}
@@ -186,20 +199,18 @@ function Main() {
                   }}
                   onKeyDown={handleKeyDown}
                 />
-                {error && (
-                  <Box w="100%" color="red.700">
-                    {error}
-                  </Box>
-                )}
+                
                 <Box flex="1" w="100%" overflow="auto">
                   <RunHistory />
                 </Box>
+
                 {feedbackRequest && (
                   <FeedbackRequest
                     request={feedbackRequest}
                     onSubmit={(response) => dispatch({ type: 'SUBMIT_FEEDBACK', payload: response })}
                   />
                 )}
+
                 <ContinuousInput />
               </VStack>
             </TabPanel>
