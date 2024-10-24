@@ -78,6 +78,7 @@ const mapFromAiSpace = (x: number, y: number) => {
 
 const promptForAction = async (
   runHistory: BetaMessageParam[],
+  systemPrompt: string
 ): Promise<BetaMessageParam> => {
   // Strip images from all but the last message
   const historyWithoutImages = runHistory.map((msg, index) => {
@@ -102,6 +103,8 @@ const promptForAction = async (
   const message = await anthropic.beta.messages.create({
     model: 'claude-3-5-sonnet-20241022',
     max_tokens: 1024,
+    system: systemPrompt, // Add this line
+    messages: historyWithoutImages,
     tools: [
       {
         type: 'computer_20241022',
@@ -130,9 +133,6 @@ const promptForAction = async (
         },
       },
     ],
-    system: `The user will ask you to perform a task and you should use their computer to do so. After each step, take a screenshot and carefully evaluate if you have achieved the right outcome. Explicitly show your thinking: "I have evaluated step X..." If not correct, try again. Only when you confirm a step was executed correctly should you move on to the next one. Note that you have to click into the browser address bar before typing a URL. You should always call a tool! Always return a tool call. Remember call the finish_run tool when you have achieved the goal of the task. Do not explain you have finished the task, just call the tool. Use keyboard shortcuts to navigate whenever possible.`,
-    // tool_choice: { type: 'any' },
-    messages: historyWithoutImages,
     betas: ['computer-use-2024-10-22'],
   });
 
@@ -218,7 +218,7 @@ export const runAgent = async (
     }
 
     try {
-      const message = await promptForAction(getState().runHistory);
+      const message = await promptForAction(getState().runHistory, getState().systemPrompt);
       setState({
         ...getState(),
         runHistory: [...getState().runHistory, message],

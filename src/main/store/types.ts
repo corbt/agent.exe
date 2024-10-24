@@ -19,12 +19,13 @@ export type AppState = {
   fullyAuto: boolean;
   running: boolean;
   error: string | null;
-
   runHistory: BetaMessageParam[];
+  systemPrompt: string;
 
   RUN_AGENT: () => void;
   STOP_RUN: () => void;
   SET_INSTRUCTIONS: (instructions: string) => void;
   SET_FULLY_AUTO: (fullyAuto: boolean) => void;
+  SET_SYSTEM_PROMPT: (systemPrompt: string) => void;
   CLEAR_HISTORY: () => void;
 };

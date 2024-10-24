@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -8,6 +8,11 @@ import {
   Link,
   Switch,
   VStack,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
   extendTheme,
   Spinner,
   useToast,
@@ -18,6 +23,7 @@ import { Route, MemoryRouter as Router, Routes } from 'react-router-dom';
 import { useDispatch } from 'zutron';
 import { useStore } from './hooks/useStore';
 import { RunHistory } from './RunHistory';
+import { SystemPrompt } from './SystemPrompt';
 
 function Main() {
   const dispatch = useDispatch(window.zutron);
@@ -28,11 +34,11 @@ function Main() {
     error,
     runHistory,
   } = useStore();
-  // Add local state for instructions
   const [localInstructions, setLocalInstructions] = React.useState(
     savedInstructions ?? '',
   );
-  const toast = useToast(); // Add toast hook
+  const toast = useToast();
+  const [activeTab, setActiveTab] = useState(0);
 
   const startRun = () => {
     // Update Zustand state before starting the run
@@ -59,7 +65,7 @@ function Main() {
       h="100vh"
       p={4}
       sx={{
-        '-webkit-app-region': 'drag', // Make the background draggable
+        '-webkit-app-region': 'drag',
       }}
     >
       {/* Title heading no longer needs drag property since parent is draggable */}
@@ -112,46 +118,66 @@ function Main() {
         pt={16}
         sx={{
           '& > *': {
-            // Make all direct children non-draggable
             '-webkit-app-region': 'no-drag',
           },
         }}
       >
-        <Box
-          as="textarea"
-          placeholder="What can I do for you today?"
-          width="100%"
-          height="auto"
-          minHeight="48px"
-          p={4}
-          borderRadius="16px"
-          border="1px solid"
-          borderColor="rgba(112, 107, 87, 0.5)"
-          verticalAlign="top"
-          resize="none"
-          overflow="hidden"
-          sx={{
-            '-webkit-app-region': 'no-drag',
-            transition: 'box-shadow 0.2s, border-color 0.2s',
-            _hover: {
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-            },
-            _focus: {
-              borderColor: 'blackAlpha.500',
-              outline: 'none',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            },
-          }}
-          value={localInstructions}
-          disabled={running}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-            setLocalInstructions(e.target.value);
-            // Auto-adjust height
-            e.target.style.height = 'auto';
-            e.target.style.height = `${e.target.scrollHeight}px`;
-          }}
-          onKeyDown={handleKeyDown}
-        />
+        <Tabs index={activeTab} onChange={setActiveTab} width="100%" height="calc(100% - 60px)">
+          <TabList>
+            <Tab>Main</Tab>
+            <Tab>System Prompt</Tab>
+          </TabList>
+
+          <TabPanels height="calc(100% - 40px)">
+            <TabPanel height="100%">
+              <VStack spacing={4} align="stretch" height="100%">
+                <Box
+                  as="textarea"
+                  placeholder="What can I do for you today?"
+                  width="100%"
+                  height="auto"
+                  minHeight="48px"
+                  p={4}
+                  borderRadius="16px"
+                  border="1px solid"
+                  borderColor="rgba(112, 107, 87, 0.5)"
+                  sx={{
+                    '-webkit-app-region': 'no-drag',
+                    transition: 'box-shadow 0.2s, border-color 0.2s',
+                    _hover: {
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+                    },
+                    _focus: {
+                      borderColor: 'blackAlpha.500',
+                      outline: 'none',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    },
+                  }}
+                  value={localInstructions}
+                  disabled={running}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                    setLocalInstructions(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  onKeyDown={handleKeyDown}
+                />
+                {error && (
+                  <Box w="100%" color="red.700">
+                    {error}
+                  </Box>
+                )}
+                <Box flex="1" w="100%" overflow="auto">
+                  <RunHistory />
+                </Box>
+              </VStack>
+            </TabPanel>
+            <TabPanel height="100%">
+              <SystemPrompt />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+
         <HStack justify="space-between" align="center" w="100%">
           <HStack spacing={2}>
             <Switch
@@ -206,18 +232,6 @@ function Main() {
             </Button>
           </HStack>
         </HStack>
-
-        {/* Add error display */}
-        {error && (
-          <Box w="100%" color="red.700">
-            {error}
-          </Box>
-        )}
-
-        {/* RunHistory component */}
-        <Box flex="1" w="100%" overflow="auto">
-          <RunHistory />
-        </Box>
       </VStack>
     </Box>
   );
