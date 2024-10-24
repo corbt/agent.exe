@@ -27,3 +27,14 @@
    - Begin implementation of persistent settings
    - Set up development environment for new features
    - Create a more detailed roadmap for feature implementation
+
+## Iteration 2: Persistent Settings Implementation
+
+1. Installed `electron-store` library for efficient local storage
+2. Created `src/main/settings.ts` to manage application settings
+3. Modified `src/main/store/create.ts` to use persistent settings
+4. Updated `src/renderer/App.tsx` to utilize persistent settings
+5. Implemented saving and loading of `instructions` and `fullyAuto` settings
+6. Next steps:
+   - Test the persistent settings functionality
+   - Move on to the next enhancement: System Prompt Configuration

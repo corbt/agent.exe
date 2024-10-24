@@ -47,6 +47,11 @@ function Main() {
     }
   };
 
+  const handleFullyAutoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.checked;
+    dispatch({ type: 'SET_FULLY_AUTO', payload: newValue });
+  };
+
   return (
     <Box
       position="relative"
@@ -151,15 +156,7 @@ function Main() {
           <HStack spacing={2}>
             <Switch
               isChecked={fullyAuto}
-              onChange={(e) => {
-                toast({
-                  description:
-                    "Whoops, automatic mode isn't actually implemented yet. 😬",
-                  status: 'info',
-                  duration: 3000,
-                  isClosable: true,
-                });
-              }}
+              onChange={handleFullyAutoChange}
             />
             <Box>Full Auto</Box>
           </HStack>
