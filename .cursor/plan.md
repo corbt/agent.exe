@@ -8,7 +8,6 @@ Agent.exe is an Electron-based application that allows Claude 3.5 Sonnet, an AI 
 
 ```
 Agent.exe/
-Agent.exe/
 ├── .cursor/                      # Directory for cursor-related files
 │   ├── instructions.md           # Instructions for the development process
 │   ├── current_status.md         # Current status of the project
@@ -23,7 +22,6 @@ Agent.exe/
 ├── src/                          # Source code directory
 │   ├── main/                     # Main process code
 │   │   ├── main.ts               # Entry point for the main process
-│   │   ├── menu.ts               # Application menu configuration
 │   │   ├── preload.ts            # Preload script for renderer process
 │   │   └── store/                # State management for main process
 │   │       ├── create.ts         # Store creation and configuration
@@ -32,7 +30,11 @@ Agent.exe/
 │   └── renderer/                 # Renderer process code
 │       ├── App.tsx               # Main React component
 │       ├── index.ejs             # HTML template for the app
-│       └── RunHistory.tsx        # Component for displaying run history
+│       ├── index.tsx             # Entry point for the renderer process
+│       ├── RunHistory.tsx        # Component for displaying run history
+│       ├── global.d.ts           # Global type declarations
+│       └── hooks/                # Custom React hooks
+│           └── useStore.ts       # Hook for accessing the Zustand store
 ├── .editorconfig                 # Editor configuration for consistent coding styles
 ├── .env                          # Environment variables (not tracked in git)
 ├── .eslintignore                 # Files to be ignored by ESLint
