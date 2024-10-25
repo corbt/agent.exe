@@ -13,15 +13,13 @@ const electronHandler = {
       ipcRenderer.send(channel, ...args);
     },
     on(channel: Channels, func: (...args: unknown[]) => void) {
-      // const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
-      //   func(...args);
-      // ipcRenderer.on(channel, subscription);
+      const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
+        func(...args);
+      ipcRenderer.on(channel, subscription);
 
-      // return () => {
-      //   ipcRenderer.removeListener(channel, subscription);
-      // };
-      console.error('on:', channel);
-      ipcRenderer.on(channel, (event, data) => func(data));
+      return () => {
+        ipcRenderer.removeListener(channel, subscription);
+      };
     },
     invoke: (channel: Channels, data: any) => ipcRenderer.invoke(channel, data),
     once(channel: Channels, func: (...args: unknown[]) => void) {
