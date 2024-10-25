@@ -23,6 +23,7 @@ function Main() {
   const dispatch = useDispatch(window.zutron);
 
   const [voiceOn, setVoiceOn] = React.useState(false);
+  const [transcribing, setTranscribing] = React.useState(false);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<Blob[]>([]);
   const [mediaStream, setMediaStream] = React.useState<MediaStream | null>(
@@ -56,26 +57,25 @@ function Main() {
   };
 
   const stt = async (audioBlob: Blob) => {
-    console.log('stt function called');
     const reader = new FileReader();
     reader.onloadend = async () => {
+      setTranscribing(true);
       const arrayBuffer = reader.result as ArrayBuffer;
-      console.log('Invoking stt handler in main process');
       try {
         const result = await window.electron.ipcRenderer.invoke(
           'stt',
           arrayBuffer,
         );
-        console.log('Received transcription result:', result);
         setLocalInstructions(result);
       } catch (error) {
-        console.error('Error in stt:', error);
         toast({
           description: `Speech-to-text error: ${error.message}`,
           status: 'error',
           duration: 5000,
           isClosable: true,
         });
+      } finally {
+        setTranscribing(false);
       }
     };
     reader.readAsArrayBuffer(audioBlob);
@@ -92,30 +92,20 @@ function Main() {
           mediaRecorderRef.current = mediaRecorder;
 
           mediaRecorder.ondataavailable = (event: BlobEvent) => {
-            console.log(
-              'ondataavailable event received, data size:',
-              event.data.size,
-            );
             if (event.data.size > 0) {
               audioChunksRef.current.push(event.data);
             }
           };
 
           mediaRecorder.onstop = () => {
-            console.log(
-              'mediaRecorder stopped, audioChunks length:',
-              audioChunksRef.current.length,
-            );
             const audioBlob = new Blob(audioChunksRef.current, {
               type: 'audio/webm',
             });
-            console.log('Created audioBlob:', audioBlob);
             stt(audioBlob);
             audioChunksRef.current = []; // Reset the array for the next recording
           };
         })
         .catch((error) => {
-          console.error('Error accessing microphone: ', error);
           toast({
             description: `Error accessing microphone: ${error.message}`,
             status: 'error',
@@ -124,7 +114,6 @@ function Main() {
           });
         });
     } else {
-      console.warn('MediaRecorder is not supported in this browser.');
       toast({
         description: 'MediaRecorder is not supported in this browser.',
         status: 'warning',
@@ -272,6 +261,19 @@ function Main() {
           border="1px solid"
           borderColor="blackAlpha.200"
           onClick={() => {
+            if (
+              !window.electron.process.env.OPENAI_API_KEY ||
+              window.electron.process.env.OPENAI_API_KEY === ''
+            ) {
+              toast({
+                description:
+                  'Add OpenAI API key to environment variables to enable voice input.',
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+              });
+              return;
+            }
             setVoiceOn(!voiceOn);
           }}
           sx={{
@@ -283,7 +285,11 @@ function Main() {
             },
           }}
         >
-          {voiceOn ? 'Recording' : 'Start Recording'}
+          {voiceOn
+            ? 'Recording'
+            : transcribing
+              ? 'Transcribing...'
+              : 'Start Recording'}
         </Button>
         <HStack justify="space-between" align="center" w="100%">
           <HStack spacing={2}>
