@@ -8,13 +8,18 @@ export const extractAction = (
   reasoning: string;
   toolId: string;
 } => {
-  const reasoning = message.content
-    .filter((content) => content.type === 'text')
-    .map((content) => content.text)
-    .join(' ');
+  const reasoning = typeof message.content === 'string'
+    ? message.content
+    : message.content
+        .filter((content) => content.type === 'text')
+        .map((content) => (content as { text: string }).text)
+        .join(' ');
 
-  const lastMessage = message.content[message.content.length - 1];
-  if (typeof lastMessage === 'string') {
+  const lastMessage = typeof message.content === 'string' 
+    ? null 
+    : message.content[message.content.length - 1];
+
+  if (!lastMessage || typeof lastMessage === 'string') {
     return {
       action: { type: 'error', message: 'No tool called' },
       reasoning,

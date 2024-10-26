@@ -1,4 +1,5 @@
 import { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages';
+import { Context } from 'telegraf';
 
 export type NextAction =
   | { type: 'key'; text: string }
@@ -14,17 +15,21 @@ export type NextAction =
   | { type: 'finish' }
   | { type: 'error'; message: string };
 
-export type AppState = {
+export type ChatSource = 'local' | 'telegram';
+
+export interface AppState {
   instructions: string | null;
   fullyAuto: boolean;
   running: boolean;
   error: string | null;
-
   runHistory: BetaMessageParam[];
-
-  RUN_AGENT: () => void;
+  chatSource: ChatSource;
+  telegramContext: Context | null;
+  RUN_AGENT: () => Promise<void>;
   STOP_RUN: () => void;
   SET_INSTRUCTIONS: (instructions: string) => void;
-  SET_FULLY_AUTO: (fullyAuto: boolean) => void;
+  SET_FULLY_AUTO: (fullyAuto?: boolean) => void;
+  SET_CHAT_SOURCE: (source: ChatSource) => void;
+  SET_TELEGRAM_CONTEXT: (ctx: Context | null) => void;
   CLEAR_HISTORY: () => void;
-};
+}

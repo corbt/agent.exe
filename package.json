@@ -100,6 +100,7 @@
     "react-icons": "^5.3.0",
     "react-json-tree": "^0.19.0",
     "react-router-dom": "^6.16.0",
+    "telegraf": "^4.16.3",
     "zustand": "^5.0.0",
     "zutron": "^0.4.0"
   },

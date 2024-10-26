@@ -15,6 +15,7 @@ import path from 'path';
 import { mainZustandBridge } from 'zutron/main';
 import { createMainWindow } from './window';
 import { store } from './store/create';
+import { createTelegramBot } from './telegram/bot';
 
 class AppUpdater {
   constructor() {
@@ -59,6 +60,14 @@ const initializeApp = async () => {
   if (isDebug) {
     await installExtensions();
   }
+
+  // Initialize Telegram bot
+  const bot = createTelegramBot(store);
+  bot.launch().catch(console.error);
+
+  // Graceful stop
+  process.once('SIGINT', () => bot.stop('SIGINT'));
+  process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
   const RESOURCES_PATH = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')

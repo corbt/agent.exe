@@ -12,6 +12,9 @@ import { hideWindowBlock, showWindow } from '../window';
 
 const MAX_STEPS = 50;
 
+// Add message queue at the top of the file
+let messageQueue: string[] = [];
+
 function getScreenDimensions(): { width: number; height: number } {
   const primaryDisplay = screen.getPrimaryDisplay();
   return primaryDisplay.size;
@@ -90,13 +93,19 @@ const promptForAction = async (
         ...msg,
         content: msg.content.map((item) => {
           if (item.type === 'tool_result' && typeof item.content !== 'string') {
+            // If all content items are images, remove the entire tool_result
+            const nonImageContent = item.content?.filter((c) => c.type !== 'image');
+            if (!nonImageContent?.length) {
+              return null;
+            }
+            // Otherwise return tool_result with only non-image content
             return {
               ...item,
-              content: item.content?.filter((c) => c.type !== 'image'),
+              content: nonImageContent,
             };
           }
           return item;
-        }),
+        }).filter(Boolean), // Remove any null items
       };
     }
     return msg;
@@ -133,9 +142,47 @@ const promptForAction = async (
         },
       },
     ],
-    system: `The user will ask you to perform a task and you should use their computer to do so. After each step, take a screenshot and carefully evaluate if you have achieved the right outcome. Explicitly show your thinking: "I have evaluated step X..." If not correct, try again. Only when you confirm a step was executed correctly should you move on to the next one. Note that you have to click into the browser address bar before typing a URL. You should always call a tool! Always return a tool call. Remember call the finish_run tool when you have achieved the goal of the task. Do not explain you have finished the task, just call the tool. Use keyboard shortcuts to navigate whenever possible.`,
-    // tool_choice: { type: 'any' },
-    messages: historyWithoutImages,
+    system: `
+      The user will ask you to perform a task, and you should use their computer to do so, utilizing 
+      full access to all system functionalities and capabilities exactly as a human user would. You 
+      can interact with any applications, files, settings, and system resources as needed to complete 
+      the task, just as if you were physically using the computer yourself. This includes opening and 
+      closing programs, navigating the file system, adjusting settings, and any other actions a human 
+      could perform.
+
+      If it is necessary to create a new account or log in to achieve the task, it is crucial to 
+      explicitly ask the user for permission to do so and to identify what the desired inputs are. 
+      When creating new accounts, always include the login information in the response to the user 
+      when calling the finish_run tool.
+
+      After each step, take a screenshot and carefully evaluate if you have achieved the right outcome. 
+      Pay close attention to small details in the images, such as icons, buttons, and other visual 
+      elements that might affect your progress. Explicitly show your thinking: "I have evaluated step X...". 
+      If not correct, try again. Only when you confirm a step was executed correctly should you move on 
+      to the next one. Note that you have to click into the browser address bar before typing a URL.
+
+      When viewing web pages, use the Page Down and Page Up keys to scroll through and gather information 
+      from the entire page content. This ensures you don't miss any important details that may be below 
+      the initial viewport. Feel free to scroll all the way down to get a comprehensive view of the page 
+      content, then back up to the relevant part to continue your work.
+
+      If necessary, you can use the mouse to click and drag to select text and/or leverage shortcuts 
+      like Ctrl+A, Ctrl+C, and Ctrl+V, Windows+Arrow Keys, or Windows+D.
+
+      If you are working in a browser and the current tab contains information relevant to the task,
+      create a new tab before proceeding to avoid losing that context. You can use 
+      Ctrl+T to open a new tab. If you need to zoom in/out to see details, use Windows+Plus or Windows+-.
+
+      Consider any context from previous tasks that might be relevant to the current task. If there
+      are related tasks or information from earlier interactions, incorporate that knowledge into
+      your approach. Before calling finish_run, carefully review all requirements and success criteria
+      to ensure nothing has been overlooked.
+
+      You should always call a tool! Always return a tool call. Remember to call the finish_run tool 
+      when you have achieved the goal of the task. Do not explain you have finished the task, just 
+      call the tool. Use keyboard shortcuts to navigate whenever possible.
+    `,
+    messages: historyWithoutImages as BetaMessageParam[],
     betas: ['computer-use-2024-10-22'],
   });
 
@@ -198,39 +245,127 @@ export const performAction = async (action: NextAction) => {
   }
 };
 
+// Track both last message and last screenshot
+let lastMessage: string | null = null;
+let lastScreenshot: string | null = null;
+
+const sendMessage = async (state: AppState, message: string) => {
+  if (!message || !message.trim()) {
+    return;
+  }
+  
+  if (state.chatSource === 'telegram') {
+    lastMessage = message;
+  } else {
+    console.log(message);
+  }
+};
+
+// Add function to send last message and screenshot
+const sendLastMessage = async (state: AppState) => {
+  if (state.chatSource === 'telegram' && state.telegramContext) {
+    if (lastScreenshot) {
+      // Convert base64 to Buffer for Telegram
+      const imageBuffer = Buffer.from(lastScreenshot, 'base64');
+      await state.telegramContext.replyWithPhoto({ source: imageBuffer });
+    }
+    if (lastMessage) {
+      await state.telegramContext.reply(lastMessage);
+    }
+    // Clear after sending
+    lastMessage = null;
+    lastScreenshot = null;
+  }
+};
+
+// Add this helper function back
+function sanitizeMessageForIPC(message: BetaMessageParam): any {
+  if (typeof message.content === 'string') {
+    return {
+      role: message.role,
+      content: message.content
+    };
+  }
+
+  return {
+    role: message.role,
+    content: message.content.map(content => {
+      if (content.type === 'tool_use') {
+        return {
+          type: content.type,
+          name: content.name,
+          input: content.input,
+          id: content.id
+        };
+      }
+      if (content.type === 'tool_result') {
+        return {
+          type: content.type,
+          tool_use_id: content.tool_use_id,
+          content: content.content?.map(c => {
+            if (c.type === 'image') {
+              return {
+                type: c.type,
+                source: {
+                  type: 'base64',
+                  media_type: 'image/png',
+                  data: c.source.data
+                }
+              };
+            }
+            return c;
+          })
+        };
+      }
+      return content;
+    })
+  };
+}
+
 export const runAgent = async (
   setState: (state: AppState) => void,
   getState: () => AppState,
 ) => {
+  // Clear tracked messages at start
+  lastMessage = null;
+  lastScreenshot = null;
+  
   setState({
     ...getState(),
     running: true,
-    runHistory: [{ role: 'user', content: getState().instructions ?? '' }],
+    runHistory: [{ 
+      role: 'user', 
+      content: getState().instructions ?? '' 
+    }],
     error: null,
   });
 
   while (getState().running) {
-    // Add this check at the start of the loop
     if (getState().runHistory.length >= MAX_STEPS * 2) {
+      const errorMsg = 'Maximum steps exceeded';
       setState({
         ...getState(),
-        error: 'Maximum steps exceeded',
+        error: errorMsg,
         running: false,
       });
+      await sendMessage(getState(), errorMsg);
+      await sendLastMessage(getState());
       break;
     }
 
     try {
       const message = await promptForAction(getState().runHistory);
+      
+      const { action, reasoning, toolId } = extractAction(message as BetaMessage);
+      
+      if (reasoning && reasoning.trim()) {
+        await sendMessage(getState(), reasoning);
+      }
+
       setState({
         ...getState(),
-        runHistory: [...getState().runHistory, message],
+        runHistory: [...getState().runHistory, sanitizeMessageForIPC(message)],
       });
-      const { action, reasoning, toolId } = extractAction(
-        message as BetaMessage,
-      );
-      console.log('REASONING', reasoning);
-      console.log('ACTION', action);
 
       if (action.type === 'error') {
         setState({
@@ -238,61 +373,76 @@ export const runAgent = async (
           error: action.message,
           running: false,
         });
+        if (action.message) {
+          await sendMessage(getState(), `Error: ${action.message}`);
+        }
+        await sendLastMessage(getState());
         break;
       } else if (action.type === 'finish') {
         setState({
           ...getState(),
           running: false,
         });
+        await sendMessage(getState(), 'Task completed successfully!');
+        await sendLastMessage(getState());
         break;
       }
+      
       if (!getState().running) {
+        await sendMessage(getState(), 'Operation stopped by user.');
+        await sendLastMessage(getState());
         break;
       }
 
-      hideWindowBlock(() => performAction(action));
+      await hideWindowBlock(() => performAction(action));
 
       await new Promise((resolve) => setTimeout(resolve, 500));
       if (!getState().running) {
+        await sendLastMessage(getState());
         break;
       }
 
-      setState({
-        ...getState(),
-        runHistory: [
-          ...getState().runHistory,
+      // Take screenshot and update state
+      const screenshot = await getScreenshot();
+      lastScreenshot = screenshot; // Store the last screenshot
+      
+      const screenshotMessage = {
+        role: 'user' as const,
+        content: [
           {
-            role: 'user',
+            type: 'tool_result' as const,
+            tool_use_id: toolId,
             content: [
               {
-                type: 'tool_result',
-                tool_use_id: toolId,
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Here is a screenshot after the action was executed',
-                  },
-                  {
-                    type: 'image',
-                    source: {
-                      type: 'base64',
-                      media_type: 'image/png',
-                      data: await getScreenshot(),
-                    },
-                  },
-                ],
+                type: 'text' as const,
+                text: 'Here is a screenshot after the action was executed',
+              },
+              {
+                type: 'image' as const,
+                source: {
+                  type: 'base64' as const,
+                  media_type: 'image/png',
+                  data: screenshot,
+                },
               },
             ],
           },
         ],
-      });
-    } catch (error: unknown) {
+      };
+
       setState({
         ...getState(),
-        error:
-          error instanceof Error ? error.message : 'An unknown error occurred',
+        runHistory: [...getState().runHistory, sanitizeMessageForIPC(screenshotMessage as BetaMessageParam)],
+      });
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'An unknown error occurred';
+      setState({
+        ...getState(),
+        error: errorMsg,
         running: false,
       });
+      await sendMessage(getState(), `Error: ${errorMsg}`);
+      await sendLastMessage(getState());
       break;
     }
   }
