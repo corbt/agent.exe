@@ -1,19 +1,16 @@
-import { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages';
+import { ChatCompletionRequestMessage, ChatCompletionResponseMessage } from 'openai';
 import { NextAction } from './types';
 
 export const extractAction = (
-  message: BetaMessageParam,
+  message: ChatCompletionResponseMessage,
 ): {
   action: NextAction;
   reasoning: string;
   toolId: string;
 } => {
-  const reasoning = message.content
-    .filter((content) => content.type === 'text')
-    .map((content) => content.text)
-    .join(' ');
+  const reasoning = message.content;
 
-  const lastMessage = message.content[message.content.length - 1];
+  const lastMessage = message;
   if (typeof lastMessage === 'string') {
     return {
       action: { type: 'error', message: 'No tool called' },
@@ -22,15 +19,15 @@ export const extractAction = (
     };
   }
 
-  if (lastMessage.type !== 'tool_use') {
+  if (lastMessage.role !== 'assistant') {
     return {
       action: { type: 'error', message: 'No tool called' },
       reasoning,
       toolId: '',
     };
   }
-  if (lastMessage.name === 'finish_run') {
-    const input = lastMessage.input as {
+  if (lastMessage.content.includes('finish_run')) {
+    const input = JSON.parse(lastMessage.content) as {
       success: boolean;
       error?: string;
     };
@@ -50,18 +47,18 @@ export const extractAction = (
       toolId: lastMessage.id,
     };
   }
-  if (lastMessage.name !== 'computer') {
+  if (!lastMessage.content.includes('computer')) {
     return {
       action: {
         type: 'error',
-        message: `Wrong tool called: ${lastMessage.name}`,
+        message: `Wrong tool called: ${lastMessage.content}`,
       },
       reasoning,
       toolId: '',
     };
   }
 
-  const { action, coordinate, text } = lastMessage.input as {
+  const { action, coordinate, text } = JSON.parse(lastMessage.content) as {
     action: string;
     coordinate?: [number, number];
     text?: string;

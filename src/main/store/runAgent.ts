@@ -1,11 +1,7 @@
-import {
-  BetaMessage,
-  BetaMessageParam,
-} from '@anthropic-ai/sdk/resources/beta/messages/messages';
+import { ChatCompletionRequestMessage, ChatCompletionResponseMessage } from 'openai';
 import { Button, Key, keyboard, mouse, Point } from '@nut-tree-fork/nut-js';
-// import { createCanvas, loadImage } from 'canvas';
 import { desktopCapturer, screen } from 'electron';
-import { anthropic } from './anthropic';
+import { openai } from './anthropic';
 import { AppState, NextAction } from './types';
 import { extractAction } from './extractAction';
 import { hideWindowBlock, showWindow } from '../window';
@@ -80,66 +76,15 @@ const mapFromAiSpace = (x: number, y: number) => {
 };
 
 const promptForAction = async (
-  runHistory: BetaMessageParam[],
-): Promise<BetaMessageParam> => {
-  // Strip images from all but the last message
-  const historyWithoutImages = runHistory.map((msg, index) => {
-    if (index === runHistory.length - 1) return msg; // Keep the last message intact
-    if (Array.isArray(msg.content)) {
-      return {
-        ...msg,
-        content: msg.content.map((item) => {
-          if (item.type === 'tool_result' && typeof item.content !== 'string') {
-            return {
-              ...item,
-              content: item.content?.filter((c) => c.type !== 'image'),
-            };
-          }
-          return item;
-        }),
-      };
-    }
-    return msg;
-  });
-
-  const message = await anthropic.beta.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+  runHistory: ChatCompletionRequestMessage[],
+): Promise<ChatCompletionResponseMessage> => {
+  const message = await openai.createChatCompletion({
+    model: 'gpt-4',
+    messages: runHistory,
     max_tokens: 1024,
-    tools: [
-      {
-        type: 'computer_20241022',
-        name: 'computer',
-        display_width_px: getAiScaledScreenDimensions().width,
-        display_height_px: getAiScaledScreenDimensions().height,
-        display_number: 1,
-      },
-      {
-        name: 'finish_run',
-        description:
-          'Call this function when you have achieved the goal of the task.',
-        input_schema: {
-          type: 'object',
-          properties: {
-            success: {
-              type: 'boolean',
-              description: 'Whether the task was successful',
-            },
-            error: {
-              type: 'string',
-              description: 'The error message if the task was not successful',
-            },
-          },
-          required: ['success'],
-        },
-      },
-    ],
-    system: `The user will ask you to perform a task and you should use their computer to do so. After each step, take a screenshot and carefully evaluate if you have achieved the right outcome. Explicitly show your thinking: "I have evaluated step X..." If not correct, try again. Only when you confirm a step was executed correctly should you move on to the next one. Note that you have to click into the browser address bar before typing a URL. You should always call a tool! Always return a tool call. Remember call the finish_run tool when you have achieved the goal of the task. Do not explain you have finished the task, just call the tool. Use keyboard shortcuts to navigate whenever possible.`,
-    // tool_choice: { type: 'any' },
-    messages: historyWithoutImages,
-    betas: ['computer-use-2024-10-22'],
   });
 
-  return { content: message.content, role: message.role };
+  return message.choices[0].message as ChatCompletionResponseMessage;
 };
 
 export const performAction = async (action: NextAction) => {
@@ -226,9 +171,7 @@ export const runAgent = async (
         ...getState(),
         runHistory: [...getState().runHistory, message],
       });
-      const { action, reasoning, toolId } = extractAction(
-        message as BetaMessage,
-      );
+      const { action, reasoning, toolId } = extractAction(message);
       console.log('REASONING', reasoning);
       console.log('ACTION', action);
 
