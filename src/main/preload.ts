@@ -21,8 +21,12 @@ const electronHandler = {
         ipcRenderer.removeListener(channel, subscription);
       };
     },
+    invoke: (channel: Channels, data: any) => ipcRenderer.invoke(channel, data),
     once(channel: Channels, func: (...args: unknown[]) => void) {
       ipcRenderer.once(channel, (_event, ...args) => func(...args));
+    },
+    removeListener(channel: Channels, func: (...args: unknown[]) => void) {
+      ipcRenderer.removeListener(channel, func);
     },
   },
   // Add window controls
@@ -30,6 +34,9 @@ const electronHandler = {
     minimize: () => ipcRenderer.invoke('minimize-window'),
     maximize: () => ipcRenderer.invoke('maximize-window'),
     close: () => ipcRenderer.invoke('close-window'),
+  },
+  process: {
+    env: process.env,
   },
 };
 

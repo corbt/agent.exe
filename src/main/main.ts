@@ -15,6 +15,12 @@ import path from 'path';
 import { mainZustandBridge } from 'zutron/main';
 import { createMainWindow } from './window';
 import { store } from './store/create';
+import { resolveHtmlPath } from './util';
+import { OpenAI } from 'openai';
+import fs from 'fs';
+import os from 'os';
+
+// const openai = new OpenAI();
 
 class AppUpdater {
   constructor() {
@@ -28,6 +34,43 @@ ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
+});
+
+ipcMain.handle('stt', async (event, arrayBuffer) => {
+  try {
+    // Convert ArrayBuffer to Buffer
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Save the audio data to a temporary file
+    const tempFilePath = path.join(
+      os.tmpdir(),
+      `temp_recording_${Date.now()}.webm`,
+    );
+    fs.writeFileSync(tempFilePath, buffer);
+
+    // Read the file as a stream
+    const fileStream = fs.createReadStream(tempFilePath);
+
+    // Call the OpenAI API
+    let response = null;
+    try {
+      response = await new OpenAI().audio.transcriptions.create(
+        { file: fileStream, model: 'whisper-1' }, // Model name
+      );
+    } catch (apiError: any) {
+      console.error('OpenAI API error:', apiError);
+      throw new Error(`OpenAI API error: ${apiError.message}`);
+    }
+
+    // Delete the temporary file
+    fs.unlinkSync(tempFilePath);
+
+    // Send the transcription back to the renderer process
+    return response.text;
+  } catch (error: any) {
+    console.error('Error during speech-to-text conversion:', error);
+    throw error;
+  }
 });
 
 if (process.env.NODE_ENV === 'production') {
