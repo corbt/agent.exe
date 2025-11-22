@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polyrhythmic Physics Sequencer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #00ffcc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: rgba(10, 10, 20, 0.8);
+            border: 2px solid #00ffcc;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.3),
+                        inset 0 0 40px rgba(0, 255, 204, 0.05);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-size: 24px;
+            text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        canvas {
+            border: 2px solid #00ffcc;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, #0f0f1e 0%, #05050a 100%);
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.4),
+                        inset 0 0 50px rgba(0, 100, 150, 0.2);
+            cursor: pointer;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            background: rgba(0, 255, 204, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #00ffcc;
+        }
+
+        .control-group .value {
+            float: right;
+            color: #ff00ff;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            background: transparent;
+            margin: 10px 0;
+        }
+
+        input[type="range"]::-webkit-slider-track {
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #00ffcc 0%, #ff00ff 100%);
+            border-radius: 3px;
+            box-shadow: 0 0 5px rgba(0, 255, 204, 0.5);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #00ffcc;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.8);
+            border: 2px solid #0a0a0f;
+        }
+
+        input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #00ffcc 0%, #ff00ff 100%);
+            border-radius: 3px;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #00ffcc;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.8);
+            border: none;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 255, 204, 0.1);
+            border: 1px solid #00ffcc;
+            border-radius: 5px;
+            color: #00ffcc;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        select option {
+            background: #0a0a0f;
+            color: #00ffcc;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #00ffcc 0%, #00ccff 100%);
+            border: none;
+            border-radius: 5px;
+            color: #0a0a0f;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.8);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .info {
+            text-align: center;
+            font-size: 11px;
+            color: rgba(0, 255, 204, 0.6);
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #ff00ff;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⬡ Polyrhythmic Physics Sequencer ⬡</h1>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="600" height="600"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>BPM <span class="value" id="bpm-value">60</span></label>
+                <input type="range" id="bpm" min="20" max="200" value="60" step="1">
+            </div>
+
+            <div class="control-group">
+                <label>Gravity <span class="value" id="gravity-value">0.15</span></label>
+                <input type="range" id="gravity" min="0" max="1" value="0.15" step="0.01">
+            </div>
+
+            <div class="control-group">
+                <label>Reverb <span class="value" id="reverb-value">50%</span></label>
+                <input type="range" id="reverb" min="0" max="100" value="50" step="1">
+            </div>
+
+            <div class="control-group">
+                <label>Emission Rate <span class="value" id="emission-value">3</span></label>
+                <input type="range" id="emission" min="1" max="10" value="3" step="1">
+            </div>
+
+            <div class="control-group">
+                <label>Musical Scale</label>
+                <select id="scale">
+                    <option value="pentatonic">Pentatonic</option>
+                    <option value="major">Major</option>
+                    <option value="minor">Minor</option>
+                    <option value="dorian">Dorian</option>
+                    <option value="phrygian">Phrygian</option>
+                    <option value="chromatic">Chromatic</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Root Note</label>
+                <select id="root-note">
+                    <option value="C">C</option>
+                    <option value="C#">C#</option>
+                    <option value="D">D</option>
+                    <option value="D#">D#</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                    <option value="F#">F#</option>
+                    <option value="G">G</option>
+                    <option value="G#">G#</option>
+                    <option value="A" selected>A</option>
+                    <option value="A#">A#</option>
+                    <option value="B">B</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="start-btn">Start Sequencer</button>
+            <button id="clear-btn">Clear Particles</button>
+        </div>
+
+        <div class="status" id="status">Click Start to begin</div>
+
+        <div class="info">
+            Click canvas to emit particles • Particles collide with walls & deflector arm<br>
+            Each collision generates a musical note based on impact angle and velocity
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = canvas.width / 2 - 20;
+
+        // Audio setup
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        // Create reverb using convolver
+        const convolver = audioCtx.createConvolver();
+        const reverbGain = audioCtx.createGain();
+        const dryGain = audioCtx.createGain();
+        const masterGain = audioCtx.createGain();
+
+        dryGain.connect(masterGain);
+        reverbGain.connect(convolver);
+        convolver.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+        masterGain.gain.value = 0.3;
+
+        // Create impulse response for reverb
+        function createReverbImpulse(duration = 2, decay = 2) {
+            const sampleRate = audioCtx.sampleRate;
+            const length = sampleRate * duration;
+            const impulse = audioCtx.createBuffer(2, length, sampleRate);
+
+            for (let channel = 0; channel < 2; channel++) {
+                const channelData = impulse.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+                }
+            }
+            return impulse;
+        }
+
+        convolver.buffer = createReverbImpulse();
+
+        // Musical scales (semitones from root)
+        const scales = {
+            pentatonic: [0, 2, 4, 7, 9],
+            major: [0, 2, 4, 5, 7, 9, 11],
+            minor: [0, 2, 3, 5, 7, 8, 10],
+            dorian: [0, 2, 3, 5, 7, 9, 10],
+            phrygian: [0, 1, 3, 5, 7, 8, 10],
+            chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        };
+
+        const noteFrequencies = {
+            'C': 261.63, 'C#': 277.18, 'D': 293.66, 'D#': 311.13,
+            'E': 329.63, 'F': 349.23, 'F#': 369.99, 'G': 392.00,
+            'G#': 415.30, 'A': 440.00, 'A#': 466.16, 'B': 493.88
+        };
+
+        // State
+        let particles = [];
+        let deflectorAngle = 0;
+        let isRunning = false;
+        let animationId = null;
+        let emissionCounter = 0;
+
+        // Settings
+        let settings = {
+            bpm: 60,
+            gravity: 0.15,
+            reverb: 50,
+            emission: 3,
+            scale: 'pentatonic',
+            rootNote: 'A'
+        };
+
+        // Particle class
+        class Particle {
+            constructor(x, y, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.radius = 4;
+                this.life = 1.0;
+                this.color = this.getRandomColor();
+                this.trail = [];
+                this.maxTrailLength = 10;
+            }
+
+            getRandomColor() {
+                const colors = [
+                    '#00ffcc', '#ff00ff', '#00ccff',
+                    '#ffcc00', '#ff0066', '#00ff99'
+                ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            update(dt) {
+                // Store trail
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > this.maxTrailLength) {
+                    this.trail.shift();
+                }
+
+                // Apply gravity
+                this.vy += settings.gravity * dt;
+
+                // Update position
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+
+                // Decay life
+                this.life -= 0.002 * dt;
+
+                // Check collision with circular boundary
+                this.checkBoundaryCollision();
+            }
+
+            checkBoundaryCollision() {
+                const dx = this.x - centerX;
+                const dy = this.y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance + this.radius >= radius) {
+                    // High-precision collision response
+                    const normal = { x: dx / distance, y: dy / distance };
+
+                    // Calculate angle for pitch
+                    const angle = Math.atan2(dy, dx);
+
+                    // Calculate velocity for volume
+                    const velocity = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+
+                    // Reflect velocity
+                    const dot = this.vx * normal.x + this.vy * normal.y;
+                    this.vx = this.vx - 2 * dot * normal.x;
+                    this.vy = this.vy - 2 * dot * normal.y;
+
+                    // Apply damping
+                    this.vx *= 0.85;
+                    this.vy *= 0.85;
+
+                    // Position correction
+                    const overlap = distance + this.radius - radius;
+                    this.x -= normal.x * overlap;
+                    this.y -= normal.y * overlap;
+
+                    // Play sound
+                    playSound(angle, velocity);
+
+                    // Visual feedback
+                    this.color = this.getRandomColor();
+                }
+            }
+
+            checkDeflectorCollision(deflectorAngle) {
+                // Deflector arm from center
+                const armLength = radius * 0.7;
+                const armEndX = centerX + Math.cos(deflectorAngle) * armLength;
+                const armEndY = centerY + Math.sin(deflectorAngle) * armLength;
+
+                // Distance from point to line segment
+                const dx = armEndX - centerX;
+                const dy = armEndY - centerY;
+                const lengthSq = dx * dx + dy * dy;
+
+                let t = ((this.x - centerX) * dx + (this.y - centerY) * dy) / lengthSq;
+                t = Math.max(0, Math.min(1, t));
+
+                const closestX = centerX + t * dx;
+                const closestY = centerY + t * dy;
+
+                const distX = this.x - closestX;
+                const distY = this.y - closestY;
+                const dist = Math.sqrt(distX * distX + distY * distY);
+
+                if (dist < this.radius + 5) {
+                    // Collision with deflector
+                    const normal = { x: distX / dist, y: distY / dist };
+
+                    // Reflect with extra energy from spinning arm
+                    const dot = this.vx * normal.x + this.vy * normal.y;
+                    this.vx = this.vx - 2 * dot * normal.x;
+                    this.vy = this.vy - 2 * dot * normal.y;
+
+                    // Add spin energy
+                    const spinSpeed = settings.bpm / 60 * Math.PI / 30;
+                    this.vx += Math.cos(deflectorAngle + Math.PI / 2) * spinSpeed * 20;
+                    this.vy += Math.sin(deflectorAngle + Math.PI / 2) * spinSpeed * 20;
+
+                    // Position correction
+                    const overlap = this.radius + 5 - dist;
+                    this.x += normal.x * overlap;
+                    this.y += normal.y * overlap;
+
+                    // Play sound
+                    const velocity = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    playSound(deflectorAngle, velocity);
+
+                    this.color = this.getRandomColor();
+                }
+            }
+
+            draw() {
+                // Draw trail
+                ctx.strokeStyle = this.color + '30';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < this.trail.length; i++) {
+                    const point = this.trail[i];
+                    if (i === 0) {
+                        ctx.moveTo(point.x, point.y);
+                    } else {
+                        ctx.lineTo(point.x, point.y);
+                    }
+                }
+                ctx.stroke();
+
+                // Draw particle
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.radius
+                );
+                gradient.addColorStop(0, this.color);
+                gradient.addColorStop(1, this.color + '00');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Glow effect
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            isDead() {
+                return this.life <= 0;
+            }
+        }
+
+        // Play sound based on angle and velocity
+        function playSound(angle, velocity) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            // Normalize angle to 0-1
+            const normalizedAngle = (angle + Math.PI) / (2 * Math.PI);
+
+            // Get scale
+            const currentScale = scales[settings.scale];
+            const scaleIndex = Math.floor(normalizedAngle * currentScale.length);
+            const semitone = currentScale[scaleIndex];
+
+            // Calculate frequency
+            const rootFreq = noteFrequencies[settings.rootNote];
+            const frequency = rootFreq * Math.pow(2, semitone / 12);
+
+            // Normalize velocity (0-1)
+            const volume = Math.min(1, velocity / 20) * 0.3;
+
+            // Create oscillator
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+
+            filter.type = 'lowpass';
+            filter.frequency.value = 2000;
+            filter.Q.value = 1;
+
+            // ADSR envelope
+            const now = audioCtx.currentTime;
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(volume, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+            // Connect nodes
+            oscillator.connect(filter);
+            filter.connect(gainNode);
+
+            // Mix dry/wet based on reverb setting
+            const wetAmount = settings.reverb / 100;
+            const dryAmount = 1 - wetAmount;
+
+            const wetGain = audioCtx.createGain();
+            const localDryGain = audioCtx.createGain();
+
+            wetGain.gain.value = wetAmount;
+            localDryGain.gain.value = dryAmount;
+
+            gainNode.connect(localDryGain);
+            gainNode.connect(wetGain);
+
+            localDryGain.connect(dryGain);
+            wetGain.connect(reverbGain);
+
+            oscillator.start(now);
+            oscillator.stop(now + 0.3);
+        }
+
+        // Emit particle
+        function emitParticle(x = centerX, y = centerY) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 3;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            particles.push(new Particle(x, y, vx, vy));
+        }
+
+        // Animation loop
+        let lastTime = performance.now();
+        function animate(currentTime) {
+            const dt = Math.min((currentTime - lastTime) / 16.67, 2); // Delta time (capped)
+            lastTime = currentTime;
+
+            // Clear canvas
+            ctx.fillStyle = 'rgba(5, 5, 10, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw circular boundary
+            ctx.strokeStyle = '#00ffcc';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#00ffcc';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Update and draw deflector arm
+            if (isRunning) {
+                const rotationSpeed = (settings.bpm / 60) * (Math.PI * 2) / 60; // radians per frame
+                deflectorAngle += rotationSpeed * dt;
+            }
+
+            const armLength = radius * 0.7;
+            const armEndX = centerX + Math.cos(deflectorAngle) * armLength;
+            const armEndY = centerY + Math.sin(deflectorAngle) * armLength;
+
+            // Draw deflector arm
+            const gradient = ctx.createLinearGradient(centerX, centerY, armEndX, armEndY);
+            gradient.addColorStop(0, '#ff00ff80');
+            gradient.addColorStop(1, '#ff00ff');
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.shadowColor = '#ff00ff';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(armEndX, armEndY);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Draw arm endpoint
+            ctx.fillStyle = '#ff00ff';
+            ctx.shadowColor = '#ff00ff';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(armEndX, armEndY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Emit particles
+            if (isRunning) {
+                emissionCounter += dt;
+                const emissionInterval = 60 / settings.emission;
+                if (emissionCounter >= emissionInterval) {
+                    emitParticle();
+                    emissionCounter = 0;
+                }
+            }
+
+            // Update and draw particles
+            particles = particles.filter(particle => {
+                particle.update(dt);
+                particle.checkDeflectorCollision(deflectorAngle);
+                particle.draw();
+                return !particle.isDead();
+            });
+
+            // Update status
+            document.getElementById('status').textContent =
+                `Particles: ${particles.length} | Deflector: ${(deflectorAngle % (Math.PI * 2) * 57.2958).toFixed(1)}°`;
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        document.getElementById('bpm').addEventListener('input', (e) => {
+            settings.bpm = parseInt(e.target.value);
+            document.getElementById('bpm-value').textContent = settings.bpm;
+        });
+
+        document.getElementById('gravity').addEventListener('input', (e) => {
+            settings.gravity = parseFloat(e.target.value);
+            document.getElementById('gravity-value').textContent = settings.gravity.toFixed(2);
+        });
+
+        document.getElementById('reverb').addEventListener('input', (e) => {
+            settings.reverb = parseInt(e.target.value);
+            document.getElementById('reverb-value').textContent = settings.reverb + '%';
+        });
+
+        document.getElementById('emission').addEventListener('input', (e) => {
+            settings.emission = parseInt(e.target.value);
+            document.getElementById('emission-value').textContent = settings.emission;
+        });
+
+        document.getElementById('scale').addEventListener('change', (e) => {
+            settings.scale = e.target.value;
+        });
+
+        document.getElementById('root-note').addEventListener('change', (e) => {
+            settings.rootNote = e.target.value;
+        });
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            isRunning = !isRunning;
+            document.getElementById('start-btn').textContent =
+                isRunning ? 'Pause Sequencer' : 'Start Sequencer';
+
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            particles = [];
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Emit multiple particles from click position
+            for (let i = 0; i < 5; i++) {
+                emitParticle(x, y);
+            }
+        });
+
+        // Start animation loop
+        animate(performance.now());
+    </script>
+</body>
+</html>
